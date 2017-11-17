@@ -1,11 +1,56 @@
 import csv
+
 import cv2
 import numpy as np
-from docutils.nodes import image
+from sklearn.utils import shuffle
+
+from keras.models import Sequential
+from keras.layers import Flatten, Dense, Lambda, Cropping2D, Convolution2D, MaxPooling2D, Dropout
+
+
+def generate_samples(path):
+    samples = []
+    csv_path = path + 'driving_log.csv'
+    with open(csv_path) as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
+
+    return samples
+
+def generator(samples, path, correction=0.2, split_str='\\', batch_size=64):
+    num_samples = len(samples)
+    while 1: # Loop forever so the generator never terminates
+        shuffle(samples)
+        for offset in range(0, num_samples, batch_size):
+            batch_samples = samples[offset:offset+batch_size]
+
+            images = []
+            angles = []
+            for batch_sample in batch_samples:
+                for i in range(3):
+                    source_path = batch_sample[i]
+                    file_name = source_path.split(split_str)[-1]
+                    current_path = path + 'IMG/' + file_name
+                    image = cv2.imread(current_path)
+                    angle = float(batch_sample[3])
+                    if i == 0:
+                        angle = float(batch_sample[3])
+                    elif i == 1:
+                        angle = float(batch_sample[3]) + correction
+                    elif i == 2:
+                        angle = float(batch_sample[3]) - correction
+
+                    images.append(image)
+                    angles.append(angle)
+
+            # trim image to only see section with road
+            X_train = np.array(images)
+            y_train = np.array(angles)
+            yield shuffle(X_train, y_train)
 
 
 def generate_data(paths, split_str, flip=False):
-    global correction
     correction = 0.2  # this is a parameter to tune
     images = []
     measurements = []
@@ -54,10 +99,6 @@ def generate_data(paths, split_str, flip=False):
     print('Done with Images')
     return X_train, y_train
 
-
-from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Cropping2D, Convolution2D, MaxPooling2D, Dropout
-
 def simple_net():
     model = Sequential()
     model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=(160,320,3)))
@@ -91,34 +132,36 @@ def le_net():
     return model
 
 if __name__ == "__main__":
-    paths, split_str = ['../data/'], '/'
+    # paths, split_str = ['../data/'], '/'
     # paths, split_str = ['../track1/3labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
     # paths, split_str = ['../track2/3labs_center/', '../track2/1lab_recovery/', '../track2/1lab_smothcurve/', '../track2/2labs_CC/'], '\\'
-    paths, split_str = ['../track1/3labs_center/', '../track1/1lab_recovery/'], '\\'
+    # paths, split_str = ['../track1/3labs_center/'], '\\'
 
-    epochs = 10
-    batch_size = 64
-    # model_name = 'first_try'
+    epochs = 5
+    batch_size = 128
     model_name = 'lenet'
 
-    X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=True)
-    print("X size: ", len(X_train))
-
-    # model = simple_net()
     model = le_net()
-
     model.summary()
 
+    path = '../track1/3labs_center/'
+    train_samples = generate_samples(path)
+    train_generator = generator(train_samples, path=path ,split_str='\\', batch_size=batch_size)
+
+    path = '../data/'
+    validation_samples = generate_samples(path)
+    validation_generator = generator(validation_samples, path=path,split_str='/', batch_size=batch_size)
+
     model.compile(loss='mse', optimizer='adam')
-    history_object = model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
+    history_object = model.fit_generator(train_generator,
+                                         samples_per_epoch= len(train_samples),
+                                         validation_data=validation_generator,
+                                         nb_val_samples=len(validation_samples),
+                                         nb_epoch=epochs)
 
     save_str = 'models/' + model_name + '_e' + str(epochs) + '_b' + str(batch_size) +'.h5'
     model.save(save_str)
-
     print(save_str)
-
-    # print the keys contained in the history object
-    print(history_object.history.keys())
 
     # plot the training and validation loss for each epoch
     from matplotlib import pyplot as plt
