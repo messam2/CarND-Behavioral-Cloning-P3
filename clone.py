@@ -143,20 +143,20 @@ def nvidia_net():
 
 if __name__ == "__main__":
     epochs = 5
-    batch_size = 64
+    batch_size = 128
 
     # model, model_name = simple_net()
-    # model, model_name = le_net()
-    model, model_name = nvidia_net()
+    model, model_name = le_net()
+    # model, model_name = nvidia_net()
     model.summary()
 
     # paths, split_str = ['../data/'], '/'
-    # paths, split_str = ['../track1/3labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
-    # paths, split_str = ['../track2/3labs_center/', '../track2/1lab_recovery/', '../track2/1lab_smothcurve/', '../track2/2labs_CC/'], '\\'
-    paths, split_str = ['../track1/3labs_center/'], '\\'
-    X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=True)
+    paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
+    # paths, split_str = ['../track2/2labs_center/', '../track2/1lab_recovery/', '../track2/1lab_smothcurve/', '../track2/2labs_CC/'], '\\'
+    # paths, split_str = ['../track1/3labs_center/'], '\\'
+    X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=False)
 
-    # path = '../track1/3labs_center/'
+    # path = '../track1/2labs_center/'
     # samples = generate_samples(path)
     # train_samples, validation_samples = train_test_split(samples, test_size=0.2)
     #
@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     model.compile(loss='mse', optimizer='adam')
 
-    model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
+    history_object = model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
 
     # history_object = model.fit_generator(train_generator,
     #                                      samples_per_epoch=len(train_samples),
