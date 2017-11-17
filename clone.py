@@ -47,6 +47,8 @@ def generate_data(paths, split_str, flip=False):
                     measurements.append(new_measurement)
         del lines
 
+    print("Training data number:", len(images))
+
     print('image size: ', image.shape)
     print('Converting Images as np array')
     X_train = np.array(images)
@@ -65,6 +67,8 @@ def generate_samples(path):
         reader = csv.reader(csvfile)
         for line in reader:
             samples.append(line)
+
+    print("Training data number:", len(samples))
 
     return samples
 
@@ -143,7 +147,7 @@ def nvidia_net():
 
 if __name__ == "__main__":
     epochs = 5
-    batch_size = 128
+    batch_size = 512
 
     # model, model_name = simple_net()
     model, model_name = le_net()
@@ -151,9 +155,9 @@ if __name__ == "__main__":
     model.summary()
 
     # paths, split_str = ['../data/'], '/'
-    paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
+    # paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
     # paths, split_str = ['../track2/2labs_center/', '../track2/1lab_recovery/', '../track2/1lab_smothcurve/', '../track2/2labs_CC/'], '\\'
-    # paths, split_str = ['../track1/3labs_center/'], '\\'
+    paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/'], '\\'
     X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=False)
 
     # path = '../track1/2labs_center/'
