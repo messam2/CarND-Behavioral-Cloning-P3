@@ -4,14 +4,15 @@ import numpy as np
 from docutils.nodes import image
 
 
-def generate_data(csv_paths, paths, split_str, flip=False):
+def generate_data(paths, split_str, flip=False):
     global correction
     correction = 0.2  # this is a parameter to tune
     images = []
     measurements = []
     print('Reading Images')
 
-    for csv_path, path in zip(csv_paths, paths):
+    for path in paths:
+        csv_path = path + 'driving_log.csv'
         lines = []
 
         with open(csv_path) as csv_file:
@@ -90,17 +91,17 @@ def le_net():
     return model
 
 if __name__ == "__main__":
-    # csv_paths, paths, split_str = ['data/driving_log.csv'], ['data/'], '/'
-    # csv_paths, paths, split_str = ['data1/driving_log.csv', 'data2/driving_log.csv'], ['data1/', 'data2/'], '\\'
-    csv_paths, paths, split_str = ['data1/driving_log.csv', 'data2/driving_log.csv', 'data3/driving_log.csv'], \
-                                  ['data1/', 'data2/', 'data3/'], \
-                                  '\\'
+    paths, split_str = ['../data/'], '/'
+    # paths, split_str = ['../track1/3labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
+    # paths, split_str = ['../track2/3labs_center/', '../track2/1lab_recovery/', '../track2/1lab_smothcurve/', '../track2/2labs_CC/'], '\\'
+    paths, split_str = ['../track1/3labs_center/', '../track1/1lab_recovery/'], '\\'
+
     epochs = 10
-    batch_size = 128
+    batch_size = 64
     # model_name = 'first_try'
     model_name = 'lenet'
 
-    X_train, y_train = generate_data(csv_paths=csv_paths, paths=paths, split_str=split_str, flip=True)
+    X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=True)
     print("X size: ", len(X_train))
 
     # model = simple_net()
@@ -109,9 +110,22 @@ if __name__ == "__main__":
     model.summary()
 
     model.compile(loss='mse', optimizer='adam')
-    model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
+    history_object = model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
 
     save_str = 'models/' + model_name + '_e' + str(epochs) + '_b' + str(batch_size) +'.h5'
     model.save(save_str)
 
     print(save_str)
+
+    # print the keys contained in the history object
+    print(history_object.history.keys())
+
+    # plot the training and validation loss for each epoch
+    from matplotlib import pyplot as plt
+    plt.plot(history_object.history['loss'])
+    plt.plot(history_object.history['val_loss'])
+    plt.title('model mean squared error loss')
+    plt.ylabel('mean squared error loss')
+    plt.xlabel('epoch')
+    plt.legend(['training set', 'validation set'], loc='upper right')
+    plt.show()
