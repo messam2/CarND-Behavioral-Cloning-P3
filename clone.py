@@ -150,14 +150,14 @@ if __name__ == "__main__":
     batch_size = 512
 
     # model, model_name = simple_net()
-    model, model_name = le_net()
-    # model, model_name = nvidia_net()
+    # model, model_name = le_net()
+    model, model_name = nvidia_net()
     model.summary()
 
     # paths, split_str = ['../data/'], '/'
-    # paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
+    paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
     # paths, split_str = ['../track2/2labs_center/', '../track2/1lab_recovery/', '../track2/1lab_smothcurve/', '../track2/2labs_CC/'], '\\'
-    paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/'], '\\'
+    # paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/'], '\\'
     X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=False)
 
     # path = '../track1/2labs_center/'
