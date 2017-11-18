@@ -47,7 +47,7 @@ def generate_data(paths, split_str, flip=False):
                     measurements.append(new_measurement)
         del lines
 
-    print("Training data number:", len(images))
+    print("Testing data number:", len(images))
 
     print('image size: ', image.shape)
     print('Converting Images as np array')
@@ -60,20 +60,21 @@ def generate_data(paths, split_str, flip=False):
     return X_train, y_train
 
 
-def generate_samples(path):
+def generate_samples(paths):
     samples = []
-    csv_path = path + 'driving_log.csv'
-    with open(csv_path) as csvfile:
-        reader = csv.reader(csvfile)
-        for line in reader:
-            samples.append(line)
+    for path in paths:
+        csv_path = path + 'driving_log.csv'
+        with open(csv_path) as csvfile:
+            reader = csv.reader(csvfile)
+            for line in reader:
+                samples.append(line)
 
-    print("Training data number:", len(samples))
+    print("Testing data number:", len(samples))
 
     return samples
 
 
-def generator(samples, path, batch_size_=64):
+def generator(samples, split_str, batch_size_=64):
     correction = 0.2
     num_samples = len(samples)
     while 1:  # Loop forever so the generator never terminates
@@ -86,8 +87,7 @@ def generator(samples, path, batch_size_=64):
             for batch_sample in batch_samples:
                 i = random.randint(0, 2)
                 source_path = batch_sample[i]
-                file_name = source_path.split('\\')[-1]
-                current_path = path + 'IMG/' + file_name
+                current_path = '..' + source_path.split(split_str)[-1].replace('\\','/')
                 image = cv2.imread(current_path)
                 if i == 0:
                     angle = float(batch_sample[3])
@@ -146,36 +146,36 @@ def nvidia_net():
 
 
 if __name__ == "__main__":
-    epochs = 5
+    epochs = 10
     batch_size = 512
 
     # model, model_name = simple_net()
-    # model, model_name = le_net()
-    model, model_name = nvidia_net()
+    model, model_name = le_net()
+    # model, model_name = nvidia_net()
     model.summary()
 
     # paths, split_str = ['../data/'], '/'
-    paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
+    # paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/', '../track1/1lab_smothcurve/', '../track1/2labs_CC/'], '\\'
     # paths, split_str = ['../track2/2labs_center/', '../track2/1lab_recovery/', '../track2/1lab_smothcurve/', '../track2/2labs_CC/'], '\\'
     # paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/'], '\\'
-    X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=False)
+    # X_train, y_train = generate_data(paths=paths, split_str=split_str, flip=False)
 
-    # path = '../track1/2labs_center/'
-    # samples = generate_samples(path)
-    # train_samples, validation_samples = train_test_split(samples, test_size=0.2)
-    #
-    # train_generator = generator(train_samples, path=path, batch_size_=batch_size)
-    # validation_generator = generator(validation_samples, path=path, batch_size_=batch_size)
+    paths, split_str = ['../track1/2labs_center/', '../track1/1lab_recovery/'], '07_Behavioral_Cloning'
+    samples = generate_samples(paths)
+    train_samples, validation_samples = train_test_split(samples, test_size=0.2)
+
+    train_generator = generator(train_samples, split_str=split_str, batch_size_=batch_size)
+    validation_generator = generator(validation_samples, split_str=split_str, batch_size_=batch_size)
 
     model.compile(loss='mse', optimizer='adam')
 
-    history_object = model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
+    # history_object = model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
 
-    # history_object = model.fit_generator(train_generator,
-    #                                      samples_per_epoch=len(train_samples),
-    #                                      validation_data=validation_generator,
-    #                                      nb_val_samples=len(validation_samples),
-    #                                      nb_epoch=epochs)
+    history_object = model.fit_generator(train_generator,
+                                         samples_per_epoch=len(train_samples)/batch_size,
+                                         validation_data=validation_generator,
+                                         nb_val_samples=len(validation_samples)/batch_size,
+                                         epochs=epochs)
 
 
     save_str = 'models/' + model_name + '_e' + str(epochs) + '_b' + str(batch_size) + '.h5'
