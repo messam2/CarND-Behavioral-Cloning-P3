@@ -102,8 +102,8 @@ def generator(samples, split_str, flip=False,batch_size_=64, use_side_cameras=Fa
                 if use_side_cameras:
                     for i in range(0,3):
                         source_path = batch_sample[i]
-                        # current_path = '..' + source_path.split(split_str)[-1].replace('\\', '/')
-                        current_path = '../data/' + source_path.split(split_str)[-1]
+                        current_path = '..' + source_path.split(split_str)[-1].replace('\\', '/')
+                        # current_path = '../data/' + source_path.split(split_str)[-1]
                         image = cv2.imread(current_path)
                         if i == 0:
                             angle = float(batch_sample[3])
@@ -177,12 +177,12 @@ if __name__ == "__main__":
     flip = False
 
     correction = 0.2  # this is a parameter to tune
-    epochs = 10
-    real_batch_size = 32
+    epochs = 30
+    batch_size = 8
     if use_side_cameras:
-        batch_size = int(real_batch_size/3)
+        real_batch_size = batch_size * 3
     else:
-        batch_size = real_batch_size
+        real_batch_size = batch_size
 
     # model, model_name = simple_net()
     # model, model_name = le_net()
@@ -198,9 +198,15 @@ if __name__ == "__main__":
 
     if use_generator:
         # paths, split_str = ['../track1/1lab_center/', '../track1/curves_recovery/'] , '07_Behavioral_Cloning'
-        paths, split_str = ['../data/'] , ' '
+        paths, split_str = ['../track1/data/'] , '07_Behavioral_Cloning'
         samples = generate_samples(paths)
-        train_samples, validation_samples = train_test_split(samples, test_size=0.2)
+        train_samples, validation_samples = train_test_split(samples, test_size=0.15)
+        if use_side_cameras:
+            train_samples_len = len(train_samples) * 3
+            validation_samples_len = len(validation_samples) * 3
+        else:
+            train_samples_len = len(train_samples)
+            validation_samples_len = len(validation_samples)
 
         train_generator = generator(train_samples, split_str=split_str, batch_size_=batch_size,
                                     use_side_cameras=use_side_cameras, correction=correction)
@@ -210,9 +216,9 @@ if __name__ == "__main__":
         model.compile(loss='mse', optimizer='adam')
 
         history_object = model.fit_generator(train_generator,
-                                         samples_per_epoch=len(train_samples) / batch_size,
+                                         samples_per_epoch=train_samples_len / real_batch_size,
                                          validation_data=validation_generator,
-                                         nb_val_samples=len(validation_samples) / batch_size,
+                                         nb_val_samples= validation_samples_len / real_batch_size,
                                          epochs=epochs)
     else:
         # paths, split_str = ['../data/'], '/'
@@ -223,10 +229,10 @@ if __name__ == "__main__":
 
         model.compile(loss='mse', optimizer='adam')
 
-        history_object = model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=batch_size)
+        history_object = model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=epochs, batch_size=real_batch_size)
 
 
-    save_str = 'models/' + model_name + '_e' + str(epochs) + '_b' + str(batch_size) + '.h5'
+    save_str = 'models/' + model_name + '_e' + str(epochs) + '_b' + str(real_batch_size) + '.h5'
     model.save(save_str)
     print(save_str)
 
